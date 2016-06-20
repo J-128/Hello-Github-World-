@@ -11,6 +11,8 @@ I may be sharing some .blend files here, perhaps, so watch for those. :)
 
 I am also interested in SuperTux development.
 
-You can check out their GitHub page at https://github.com/supertux/SuperTux
+You can check out their GitHub page at https://github.com/supertux/SuperTux, 
+or their homepage at http://supertux.github.io/index.html
+
 
 That's all for now!
