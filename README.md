@@ -1,4 +1,4 @@
-# Hello-Github-World
+# Hello Github World!
 My very first Github repository
 
 Hello, everyone! This is my very first GitHub repository.
