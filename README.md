@@ -7,7 +7,7 @@ I'm quite sure yet what I'll use it for, but I'll think of something.
 
 I will be sharing some Python scripts for Blender here, as well as .blend files themselves, so watch for those. :)
 
-##Other Interests:
+## Other Interests:
 
 
 
