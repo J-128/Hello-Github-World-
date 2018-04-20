@@ -28,8 +28,7 @@ I can do a _very little_ C++, as a result of messing with microcontrollers and A
 
 I will be sharing some of my programs here, too.
 
-The FreeBASIC home page is at https://freebasic.net, and Python's home page is https://python.org
-Arduino's home page can be found at https://arduino.cc
+The FreeBASIC home page is at https://freebasic.net, and Python's home page is https://python.org.  Arduino's home page can be found at https://arduino.cc
 
 
 That's all for now!
