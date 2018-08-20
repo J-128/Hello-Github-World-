@@ -2,7 +2,7 @@
 
 Okay, so as you can see, the only Python script I have here currently is *VBinDiffGUI.py*.  Each program that I decide to share here will have it's own section in this document, detailing what it does, how it's used, etc.  So, let's begin!
 
-### VBinDiffGui.py
+### VBinDiffGUI.py
 This program is a graphical frontend to the very good vbindiff Binary Diff program.  My script uses nothing but the tkinter module along with the filedialog and messagebox submodules, the os module, and built-in python commands, so it should be easy to run on just about any *Linux* system.  The reason I wrote this is because, as much as I like vbindiff, because it's a terminal program, I didn't like having to type the *complete paths* to the files I wanted to compare on the command line.  With this little GUI application, you still have the option to type out the full paths to the files you want to compare, or you can just browse for them using the graphical interface, which makes things a lot easier and more user-friendly.  This program has some error checking;  it will give you an error message if you enter a path that doesn't exist, or if the path is to a directory.  I may add some screenshots of it in action at a later date.
 
 __Warnings/tips:__ This program was developed on and for Linux, so it __Will Not Work__ for Windows users.  It relies on the vbindiff binary being at _/usr/bin/vbindiff_, so if you have vbindiff installed somewhere else, you'll either have to modify the program, or add a link/symlink to it in the previously given path.  Of course, this is all assuming anyone will actually find, let alone actually _use_ this program...
