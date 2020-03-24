@@ -24,7 +24,7 @@ or their home page at http://supertux.github.io/index.html
 
 
 I also dabble in programming, especially FreeBASIC and Python 3.
-I can do a _very little_ C++, as a result of messing with microcontrollers and Arduio.
+I can do a _very little_ C++, as a result of messing with microcontrollers and Arduino.
 
 I will be sharing some of my programs here, too.
 
