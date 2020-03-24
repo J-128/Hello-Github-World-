@@ -1,0 +1,125 @@
+#Include Once "windows.bi"
+
+Declare Sub cmdHelp()
+
+Dim TargetKey As String, KeyDelay As Integer, ClickFlag As UByte
+
+/'--------------------------------------------'/
+
+Select Case UCase(Command(1))
+    Case ""
+        KeyDelay = 750
+	
+    Case "-H", "--HELP"
+        cmdHelp()
+        End
+	
+    Case "-D", "--DELAY"
+        If CInt(Command(2)) < 5 Then
+            Print "Bad DELAY value. Using default."
+            KeyDelay = 750
+        Else
+            KeyDelay = CInt(Command(2))
+        End If
+	
+    Case Else
+        Print "Bad Command. Maybe try --HELP?"
+        End
+End Select
+
+/'--------------------------------------------'/
+
+AskForKey:
+Input "What alphanumeric keypress do you want to repetedly send to the active application? (Enter 'click' to send mouse events.) ", TargetKey
+
+If UCase(TargetKey) = "CLICK" Then 
+    Input "Choose one: 1 = LeftClick; 2 = RightClick; 3 = MiddleClick ", ClickFlag
+    
+    Select Case ClickFlag
+        Case 1
+            Print "Sending LClick events."
+        Case 2
+            Print "Sending RClick events."
+        Case 3
+            Print "Sending MClick events."
+        Case Else
+            Print "Returning..."
+            ClickFlag = 0
+            GoTo AskForKey
+    End Select
+
+Else
+    If Len(TargetKey) > 1 Then Print Chr(10); "ERROR: Input must be a SINGLE LETTER. Exiting." : End
+        
+    TargetKey = UCase(TargetKey)
+        
+    Print "TargetKey is: "; TargetKey
+EndIf
+
+print "Press any key to continue..."
+Sleep
+
+Print
+Print "Make target app active, will start sending keys in 5 sec...";
+Sleep 5000
+
+/'--------------------------------------------'/
+
+Do
+    If ClickFlag = 0 Then
+        Dim i As Integer
+        Dim ki(0 To 1) As INPUT_
+        For i = 0 To 1
+            ki(i).type = INPUT_KEYBOARD
+        Next
+
+        ki(0).ki.wVk = Asc(TargetKey)
+        ki(0).ki.dwFlags = 0
+        ki(1).ki.wVk = Asc(TargetKey)
+        ki(1).ki.dwFlags = KEYEVENTF_KEYUP
+	
+        Print
+        Print SendInput(2, @ki(0), SizeOf(ki))
+	
+    ElseIf ClickFlag = 1 Then
+        mouse_event MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0
+        sleep 10
+        mouse_event MOUSEEVENTF_LEFTUP, 0, 0, 0, 0
+    ElseIf ClickFlag = 2 Then
+        mouse_event MOUSEEVENTF_RIGHTDOWN, 0, 0, 0, 0
+        sleep 10
+        mouse_event MOUSEEVENTF_RIGHTUP, 0, 0, 0, 0
+    ElseIf ClickFlag = 3 Then
+        mouse_event MOUSEEVENTF_MIDDLEDOWN, 0, 0, 0, 0
+        sleep 10
+        mouse_event MOUSEEVENTF_MIDDLEUP, 0, 0, 0, 0
+    EndIf
+	
+    Sleep KeyDelay
+Loop
+
+
+Sub cmdHelp()
+
+    Print "Usage: KeySender2 [[--delay | -d msecs] | [--help | -h]]"
+    Print
+    Print "Arguments:"
+    Print "  --DELAY", "Set the time between subsequent keypress sends to MSECS "
+    Print "", "milliseconds." 
+    Print "", "Default delay: 750 milliseconds; minimum delay: 5 milliseconds"
+    Print "  --HELP", "Show this help text"	
+    Print "  -D", "Same as --DELAY"
+    Print "  -H", "Same as --HELP"
+    Print
+    Print "Credits:"
+    Print "  This mostly-useless piece of software was adapted by J. (Dragonrider's Fury)"
+    Print "  Davis on July 11th, 2019, from code shared by MichaelW on the FreeBASIC"
+    Print "  forum, June 5th, 2006 (https://www.freebasic.net/forum/viewtopic.php?t=4352)"
+    Print "  and code shared by BryBry, also on the FreeBASIC forum, December 30, 2011"
+    Print "  (https://www.freebasic.net/forum/viewtopic.php?t=19174)."
+    Print
+    Print "  It has absolutely no license."
+    Print
+    Print "  (Slightly revised 3/24/20)"
+
+End Sub
