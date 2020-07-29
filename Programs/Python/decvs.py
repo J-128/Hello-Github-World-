@@ -22,12 +22,19 @@ for dirpath, dirnames, files in os.walk(treeroot):
 endTime = time.time() #Store the time the walk ended
 
 print("Walk finished with {0} results in {1} seconds".format(len(filesFound), endTime - startTime))
-showResults = input("Show results? Y/N ")
+showResults = input("Show raw results list? Y/N ")
 
 if showResults.upper().startswith("Y"):
     print(filesFound)
 
 print()
+verbose = input("Print verbose info? Y/N ")
+
+if verbose.upper().startswith("Y"):
+    printInfo = True
+else:
+    printInfo = False
+
 input("Press Enter to continue. Warning, this may take a long, LONG time!") #Courtesy warning
 
 print("De-CVS process started.  Please wait... ", end="")
@@ -42,7 +49,7 @@ for file in filesFound: #Now, iterate through every file found, so we can make t
 
     #Now, theoretically, when the loop exits, the stream position will be right at
     #    the start of the actual file data.  Therefore, we store this offset.
-    print("Data Start found at offset {}".format(hex(inFile.tell())))
+    if printInfo: print("Data Start found at offset {}".format(hex(inFile.tell())))
     dataStart = inFile.tell()
 
     #Now, do basically the same thing, but search for the ending semaphore.
@@ -50,27 +57,27 @@ for file in filesFound: #Now, iterate through every file found, so we can make t
         inFile.seek(-15, 1)
 
     inFile.seek(-16, 1) #Seek back 16 bytes so we don't include the data-end semaphore
-    print("Data end found at offset {}".format(hex(inFile.tell())))
+    if printInfo: print("Data End found at offset {}".format(hex(inFile.tell())))
     dataEnd = inFile.tell()
 
     #Now, start writing the de-CVS'd file!
     outFile = open(file.rstrip(",v"), "bw") #Open the output file
-    print("Output file opened")
+    if printInfo: print("Output file opened")
 
     inFile.seek(dataStart) #Seek to the start of the data
     
-    print("Writing... ", end="")
+    if printInfo: print("Writing... ", end="")
     while inFile.tell() != dataEnd:
         outFile.write(inFile.read(1)) #Funny, the actual data-writing is the simplest piece of code.
 
     #When that loop finishes, if everything worked, we have the complete de-CVS'd file!  Now, close the handles, and move on the the next.
-    print("Done.")
-    print("Closing... ", end="")
+    if printInfo: print("Done.")
+    if printInfo: print("Closing... ", end="")
 
     outFile.close()
     inFile.close()
 
-    print("Done. Moving to next file...")
+    if printInfo: print("Done. Moving to next file...")
 endTime = time.time()
 
 print("Operation finished in {0} seconds. (Do the math yourself if you want a different time unit. :P)".format(endTime - startTime))
