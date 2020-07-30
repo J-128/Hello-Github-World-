@@ -52,11 +52,18 @@ for file in filesFound: #Now, iterate through every file found, so we can make t
     if printInfo: print("Data Start found at offset {}".format(hex(inFile.tell())))
     dataStart = inFile.tell()
 
-    #Now, do basically the same thing, but search for the ending semaphore.
-    while not inFile.read(16) == b'\x40\x0A\x0A\x0A\x31\x2E\x31\x2E\x31\x2E\x31\x0A\x6C\x6F\x67\x0A':
-        inFile.seek(-15, 1)
+    #Now, do basically the same thing, but search for the ending semaphore.  Apparently, this may not exist, so hopefully the OR clause will help?
+        #This is not working. It softlocks if the end semaphore is nonexistent.
+    seekBack = True
+    while not inFile.read(16) == b'\x40\x0A\x0A\x0A\x31\x2E\x31\x2E\x31\x2E\x31\x0A\x6C\x6F\x67\x0A':# or not inFile.read(16) == b'':
+        p = inFile.tell()
+        if inFile.seek(0, 2) == p:
+            seekBack = False
+            inFile.seek(p)
+            break
+        inFile.seek(p - 15)
 
-    inFile.seek(-16, 1) #Seek back 16 bytes so we don't include the data-end semaphore
+    if seekBack: inFile.seek(-16, 1) #Seek back 16 bytes so we don't include the data-end semaphore
     if printInfo: print("Data End found at offset {}".format(hex(inFile.tell())))
     dataEnd = inFile.tell()
 
