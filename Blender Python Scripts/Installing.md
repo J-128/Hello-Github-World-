@@ -7,7 +7,7 @@ Alternatively, in Blender User Preferences>>add-ons, click "Install from File...
 
 That simple!
 
-#####Note: These add-on scripts were written with Blender 2.7x in mind, so if you run an older version, they might not work.
+#####Note: These add-on scripts were written with Blender 2.7x in mind, so if you run an older version, they might not work, and if you run a newer one, they almost certainly won't.
 #####  You can modify and/or redistribute them to your heart's content!
 
 #Enjoy!
