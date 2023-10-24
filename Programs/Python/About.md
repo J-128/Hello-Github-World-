@@ -16,3 +16,8 @@ _Warnings/tips:_ None? I can't think of any...
 This CLI script was created as a result of _Gigaleak II_, which happened on 7/25/20.  _Hopefully_ what it does is walk trough a directory tree, creating copies of all the *\*,v* files with the CVS metadata removed and the ",v" removed from the filename.
 
 _Warnings/tips:_ I have only tested this on a few of the leaked files; I can't guarantee it works for any other CVS repository.  Also, it should be noted that if the (as I probably incorrectly called it) ending semaphore is not found, the output _should_ (although I can guarantee nothing) be the file with only the starting metadata removed.  This program should be considered a public alpha; I haven't tested it very thoroughly, and I hardly know if it works!
+
+### xmlparse.py
+Okay, you can call me ridiculous, but I decided to write this script becuase I couldn't figure out how to use Python's built-in XML-parsing library, I had a use for an XML parser, and I've been told the built-in one doesn't work very well.  You should just be able to import and use this like any other module.  It depends on Python 3(.8 is the version I developed it in) and the built-in `re` module, but nothing else.
+
+_Warnings/tips:_  This is UNFINISHED, WORK-IN-PROGRESS software.  Do not expect clean code, good functionality, and flawless operation.  Really, at this point, the only thing I'd recommend actually _doing_ with it is perhaps trying to improve it.  The *most* basic functionality is _kind of_ there, but not much else.
