@@ -38,7 +38,7 @@ parts:
         ).  We store Contents as a list of strings and XMLements, or in the case of
         an empty tag (such as <subelement> in the example above), as NoneType.'''
 
-    def __init__(self, name="", props={}, contents=None):
+    def __init__(self, name="", props={}, contents=None, *, _parent=None):
         #Test for validity:
         if type(name) is not str: #Name is string
             raise TypeError("XMLement Name must be a string")
@@ -57,6 +57,7 @@ parts:
         else:
             raise TypeError("XMLement Contents must be expressed as a list/tuple")
         self.contents = contents
+        self._parent = _parent
 
     '''Context:
         Elements can be embedded in elements, like
@@ -70,7 +71,7 @@ parts:
     ###
 
     def __str__(self):
-        return self.toXML('\n')
+        return self.toXML('\n') + f"\t\tID: {id(self)}\t\tParent ID: {id(self._parent)}\n"
 
     ###
 
@@ -125,7 +126,7 @@ def readFile(pathToXML):
 
     lines = []  
     
-    with open(pathToXML) as f:
+    with open(pathToXML, errors='surrogateescape') as f:
         try:
             firstLine = f.readline()
             if not (firstLine.startswith("<?xml") and firstLine.endswith("?>\n")):
@@ -151,8 +152,13 @@ def readFile(pathToXML):
 
 ################################
 
-def toXMLements(inStr): #The main parser
-    """Convert a string of XML into a list of XMLements"""
+def toXMLements(inStr, parentElement=None, depth=0): #The main parser
+    """Convert a string of XML data into a list of XMLements
+    parentElement, if given, specifies the XMLement within which the current set of tags
+    (inStr) is contained"""
+
+    if parentElement is not None and type(parentElement) is not XMLement:
+        raise TypeError("ParentElement, if specified, must be an XMLement")
 
     import re as regex
     
@@ -178,6 +184,8 @@ def toXMLements(inStr): #The main parser
     #P_tag_with_contents = r'<(?P<name>[^\s>]*) ?(?P<propsField>[^>]*)>(?P<contents>.*)</(?P=name)>' ##Older regex; would not match empty tags
     P_tag_with_contents = r'<(?P<name>[^\s>]*) ?(?P<propsField>[^>]*)( />|>(?P<contents>.*)</(?P=name)>)'
 
+    tags = [] #The list that will hold the XMLements
+
     #Get a list of tagnames in the string
     tagsByName = []
     for m in regex.findall(P_tag_names, inStr):
@@ -187,166 +195,123 @@ def toXMLements(inStr): #The main parser
         #We could also ignore comments (<!-- {text} -->) here, but for now, we'll not.
         
         if not m.startswith("/"): #At the moment, we're only interested in opening tags
-            tagsByName.append(m)
+            tagsByName.append(XMLement(m, _parent=parentElement)) #Create a list of the XMLements in the input.
+                                           #  For now, we're just storing the tagname.
+                                           #  We'll figure out the props/contents later.
 
-    #From that list, generate a list of UNIQUE tagnames, so we know what we're looking
-    #  for when we're actually parsing the string into a list of XMLements
-    #
-    #Note that we /could/ collapse this code into the tagsByName loop, but a list of every
-    #  tag name /COULD/ potentially be useful, so /for now/, we'll not.
-    uniqueTags = []
+    #Offset lists so we know where each instance of T starts/ends 
+    openingOffsets = [0]
+    closingOffsets = [0]
+    
     for t in tagsByName:
-        if not t in uniqueTags:
-            uniqueTags.append(t)
+        strOffs = inStr.find(f"<{t.name}", openingOffsets[-1]) #S.find each tag matching T
 
+        tagCloseOffs = inStr.find(f"</{t.name}>", strOffs) #S.find a closing tag for T
+        if tagCloseOffs == -1: #No closing tag found!  Perhaps it's an empty tag? (E.G. <nullTag /> )
+            #TODO: Actually HANDLE THIS, rather than just print a warning!
+            print("Warning! No closing tag found!")
+            pass
+
+        openingOffsets.append(strOffs)
+        closingOffsets.append(tagCloseOffs)
+    else:
+        #Since the lists were initialized to [0] (so we could use the last item
+        #  as S.find()'s starting offset), remove this first value from each
+        #  once we're out of tags
+        openingOffsets.pop(0)
+        closingOffsets.pop(0)
 
     #That done, we can finally begin! (Right?)
-    tags = [] #The list that will hold the XMLements
+    ctr = depth #Counter variable, incremented for each opening instance of T, decremented
+            #  for each closing
 
+    #_element = XMLement(_parent=parentElement) #The XMLement we're working on processing out
 
-    #print(uniqueTags) ##DEBUG
+    ##DEBUG
+    print("\t"*depth, "---------------")
+    print("\t"*depth, openingOffsets)
+    print("\t"*depth, closingOffsets)
+    print("\t"*depth, tagsByName)
+    print("\t"*depth, "---------------")
+    #print(tagsByName)-len(openingOffsets))
+    #######
 
+    for idx, (t, oOfs, cOfs) in enumerate(zip(tagsByName, openingOffsets, closingOffsets)): #Iterate through the offsets list;
+        
+##        ##DEBUG
+##        print("\t"*depth, "-----------")
+##        print("\t"*depth, idx, repr(t), oOfs, cOfs)
+##        print("\t"*depth, "-----------")
+##        #######
 
-    for t in uniqueTags:
-        strOffs = -1 #We'll need to run S.find() multiple times to collect every instance
-                     #  of a given tag.  Thus, we'll need to store each offset (in the string)
-                     #  where the tag is found, so we can pass that (plus 1) in as
-                     #  S.find's 'start' argument each time.
-                     #We use strOffs + 1 each time so we don't sit and match the same
-                     #  tag ad infinitum; thus, it is necessary to initialize it to -1
-                     #  so we don't miss the first tag (I.E. the tag at Offset 0).
+        if cOfs > oOfs: #Normal situation
+            #Slice inStr to get the full tag/contents
+            fullTag = inStr[
+                oOfs: #Slice start
+                cOfs + len(f"</{t.name}>") #Slice end
+                ]###
 
-        ctr = 0 #Counter variable, incremented for each opening instance of T, decremented
-                #  for each closing
+            ctr += 1 #Increment counter
 
-        #Offset lists so we know where each instance of T starts/ends 
-        openingOffsets = []
-        closingOffsets = []
-    
-        while True:
-            strOffs = inStr.find(f"<{t}", strOffs+1) #S.find each tag matching T
-            if strOffs == -1: break #No more matching tags; exit loop
+##            ##DEBUG
+##            print("\t"*depth, "-------")
+##            print("\t"*depth, fullTag)
+##            print("\t"*depth, "-------")
+##            #######
 
-            #nextStrOffs = inStr.find(f"<{t}", strOffs+1) ##Shouldn't be necessary, right?
-
-            tagCloseOffs = inStr.find(f"</{t}>", strOffs) #S.find a closing tag for T
-            if tagCloseOffs == -1: #No closing tag found!  Perhaps it's an empty tag? (E.G. <nullTag /> )
-                #TODO: Actually HANDLE THIS, rather than just print a warning!
-                print("Warning! No closing tag found!")
-                pass
-
-            openingOffsets.append(strOffs)
-            closingOffsets.append(tagCloseOffs)
-
-        print(openingOffsets, closingOffsets)
-
-        for idx, ofs in enumerate(openingOffsets): #Iterate through the offsets list;
-
-            #Find the correct case to execute
-            if idx + 1 == len(openingOffsets): #We cannot do the three-part compare;
-                #Instead, do a simpler (but less safe) compare
-                if ofs < closingOffsets[idx]: #Everything's good;
-                    case = 1 #Tag closes normally
-                else: #Otherwise,
-                    case = -1 #We've got a problem.
-            else: #We can do the safer, three-part test-compare
-                if ofs < closingOffsets[idx] < openingOffsets[idx+1]: #So do it
-                    case = 1 #Tag ends before next instance begins
-                elif ofs < closingOffsets[idx] > openingOffsets[idx+1]: #Case 2: Another instance of T begins within the instance being parsed
-                    case = 2 #New T instance begins before current one closes 
-                else: #Something's weird;
-                    case = -1 #We've got problems! (Fortunately, you don't have to jump... yet. :P XD)
-
-            #Now, execute it!
-            if case == 1: #Normal
-
-                #Slice inStr to get the full tag/contents
-                fullTag = inStr[
-                    ofs: #Slice start
-                    closingOffsets[idx] + len(f"</{t}>") #Slice end
-                    ]###
-
-                ctr += 1 #Increment counter
-                
-                #And now, process that tag into a valid XMLement
-                m = regex.match(P_tag_with_contents, fullTag, regex.DOTALL) #Use a regex to extract tag name, properties, and contents
-                
-                if not m: #Error case; should never happen
-                    raise IOError("Regex failed to match the tag <{0}> at Offset {1}".format(t, offs))
-
-                #Collect parameters to initialize XMLement with
-                n = m.group("name") #Tagname
-                p = {} #Properties dict
-                if len(m.group("propsField")) > 0: #Have we properties?  If so...
-                    for prop in m.group("propsField").split(" "): #...Split apart the properties...
-                        k, v = prop.split("=") #...Find each key and its value...
-                        p.setdefault(k, v) #...and append them to the dictionary
-                c = m.group("contents") #Contents
-
-                #Post-process C, since at this point, it's just a string
-                cl = [] #List to hold processed Contents
-                cm = regex.search(P_tag_with_contents, c, regex.DOTALL)
-                if cm: #C contains XML; process into XMLements
-                    pass #Somehow
-                    for e in toXMLements(c): #Feed C to the parser and iterate through the resultant list,
-                        cl.append(e) #adding each result to the list used to initalize the current XMLement?
-                else: #C is only a string (or nothing); add to the Contents list
-                    cl.append(c) #Hope this is right...
-
-                tags.append(XMLement(n, p, cl))
-
-                ctr -= 1
-            ##End Case 1
-
-            elif case == 2: #T instance embedded in T
-                pass
-            ##End Case 2
-
-            elif case == -1: #Error
-                raise IOError(f"Problem parsing instance {idx+1} of tag <{t}> starting at Offset {ofs}.")
-
-        """if tagCloseOffs < nextStrOffs: #Tag closes before next one begins; thus...
-            '''ctr -= 1 #Decrement counter,
-            fullTag = inStr[strOffs:tagCloseOffs+len(f"</{t}>")] #Extract full tag/contents,
-
+            
             #And now, process that tag into a valid XMLement
-
-
-            #print(ctr, strOffs, nextStrOffs, tagCloseOffs, fullTag) ##DEBUG
-            
-            
             m = regex.match(P_tag_with_contents, fullTag, regex.DOTALL) #Use a regex to extract tag name, properties, and contents
             
             if not m: #Error case; should never happen
-                raise IOError("Regex failed to match the tag <{0}>".format(t))
+                raise RuntimeError("Regex failed to match the tag <{0}> at Offset {1} of input {2}".format(t.name, oOfs, inStr))
 
             #Collect parameters to initialize XMLement with
-            n = m.group("name") #Tagname
+            n = m.group("name") #Tagname; Actually irrelevant, as we created the correct NAME for each XMLement at the top of the function
             p = {} #Properties dict
             if len(m.group("propsField")) > 0: #Have we properties?  If so...
                 for prop in m.group("propsField").split(" "): #...Split apart the properties...
                     k, v = prop.split("=") #...Find each key and its value...
                     p.setdefault(k, v) #...and append them to the dictionary
-            c = m.group("contents") #Contents
-                                    #  Just a string; needs post-processing
-            #Thus, post-process it!
-            cl = [] #List to hold processed Contents
-            cm = regex.search(P_tag_with_contents, c, regex.DOTALL)
-            if cm: #C contains XML; process into XMLements
-                pass #Somehow
-                for e in toXMLements(c): #Feed C to the parser and iterate through the resultant list,
-                    cl.append(e) #adding each result to the list used to initalize the current XMLement?
-            else: #C is only a string (or nothing); add to the Contents list
-                cl.append(c) #Hope this is right...
+            c = m.group("contents") #Contents; Needs post-processing, as it's just
+                                    #  a string at this point.          
+            t.props = p
+            t.contents = c
 
-            tags.append(XMLement(n, p, cl))'''
+            ##DEBUG
+            print("\t"*depth, "-----")
+            print("\t"*depth, id(t), '\t', repr(t), '\t\t', id(t._parent), '\t', repr(t._parent))
+            print("\t"*depth, "-----")
+            #######
 
-        else: #Tag either A) does NOT close before the next one begins, or B) is the last/only instance
-            print(f"Alert while parsing tag <{t}>! Tag does not close before next one begins.\n\tStrOffs:{strOffs} nextStrOffs:{nextStrOffs} tagCloseOffs:{tagCloseOffs} ctr:{ctr}\n")
-            pass #REMINDER: Actually handle this!
-        """
-                
+            tags.append(t) #...and append it!  We now have a partial result; each
+                           #  tag in in the list with its properties, and contents
+                           #  as a string.  Step 2 will be to convert that string
+                           #  into XMLements where required.
 
+            ctr -= 1 #Decrement counter
+
+        else: #Error
+            raise RuntimeError(f"Problem parsing instance {idx+1} of tag <{t.name}> starting at Offset {oOfs} in input string {inStr}.")
+
+
+    ##Step 2: CONTENTS to necessary XMLements; resolve _parent(?)
+    for t in tags:
+        c = t.contents
+        cl = [] #List to hold processed Contents
+        cm = regex.search(P_tag_with_contents, c, regex.DOTALL)
+        if cm: #C contains XML; process into XMLements
+            for e in toXMLements(c, t, ctr): #Feed C to the parser and iterate through the resultant list,
+                cl.append(e) #adding each result to the list used to initalize the current XMLement?
+        else: #C is only a string (or nothing); add to the Contents list
+            cl.append(c) #Hope this is right...
+
+        ##DEBUG
+        print('\t'*depth, cl)
+        #######
+        
+        t.contents = cl
+        
 
 
     return tags
